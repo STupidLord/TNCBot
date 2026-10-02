@@ -24,7 +24,7 @@ PROMPT = """
     ```code block``` for code block
     > for quote, place on each line to be quoted
 
-    End of style guide, next is the lore text
+    End of style guide, next is the lore text. The lore text obviously includes lore, but at the top it also includes emojis for use in the message, prefer them over generic emojis when applicable.
 
 """
 MAX_LENGTH = 2000

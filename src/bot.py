@@ -10,7 +10,6 @@ import discord
 from discord import NotFound, guild
 from discord.ext import commands
 from google import genai
-from tenacity import R
 
 import help
 from constants import CONFIG_FILE, DB_FILE, HEADER, MAX_LENGTH

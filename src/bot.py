@@ -10,6 +10,7 @@ import discord
 from discord import NotFound, guild
 from discord.ext import commands
 from google import genai
+from tenacity import R
 
 import help
 from constants import CONFIG_FILE, DB_FILE, HEADER, MAX_LENGTH
@@ -86,6 +87,11 @@ class TNCBot(commands.Bot):
                     print("Channel not found")
             except Exception as e: # noqa: BLE001
                 print(f"Error when trying to send message in channel: {type(e)} {e}")
+        elif re.match(r"current-key", command):
+            try:
+                print(self.ai._api_client.api_key)
+            except Exception as e: # noqa: BLE001
+                print("Couldn't catch API key for reason:", e)
         else:
             print(f"Unknown command {command}")
     

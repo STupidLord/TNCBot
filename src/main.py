@@ -1,14 +1,14 @@
 import asyncio
 import os
 
-from dotenv import load
+from dotenv import load_dotenv
 
 import bot as tncbot
 import command_register
 
 
 async def main():
-    load()
+    load_dotenv(override=True)
 
     bot = tncbot.TNCBot()
 

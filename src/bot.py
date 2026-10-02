@@ -147,6 +147,13 @@ class TNCBot(commands.Bot):
                 PRIMARY KEY (guild_id, channel_id)
             )
         """)
+        await self.db.execute("""
+            CREATE TABLE IF NOT EXISTS banned_users (
+                guild_id INTEGER,
+                user_id INTEGER,
+                PRIMARY KEY (guild_id, user_id)
+            )
+        """)
         await self.db.commit()
         print("SQLite connected")
 

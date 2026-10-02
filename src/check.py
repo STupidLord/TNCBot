@@ -39,3 +39,42 @@ def is_allowed_channel():
         raise UnAllowedChannelError
 
     return commands.check(predicate)
+
+class BannedUserError(commands.CommandError):
+    """User is not allowed to use this command"""
+
+def is_banned_user():
+    async def predicate(ctx: commands.Context):
+        if ctx.guild is None:
+            return False
+
+        async with ctx.bot.db.execute(
+                "SELECT 1 FROM banned_users WHERE guild_id = ? AND user_id = ?", 
+                (ctx.guild.id, ctx.author.id)
+            ) as cursor:
+                result = await cursor.fetchone()
+
+        if result is not None:
+            return True
+        
+        raise BannedUserError
+
+    return commands.check(predicate)
+
+def is_not_banned_user():
+    async def predicate(ctx: commands.Context):
+        if ctx.guild is None:
+            return False
+
+        async with ctx.bot.db.execute(
+                "SELECT 1 FROM banned_users WHERE guild_id = ? AND user_id = ?", 
+                (ctx.guild.id, ctx.author.id)
+            ) as cursor:
+                result = await cursor.fetchone()
+
+        if result is None:
+            return True
+        
+        raise BannedUserError
+
+    return commands.check(predicate)

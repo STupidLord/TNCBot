@@ -89,6 +89,7 @@ class GenAI(commands.Cog):
     @commands.command()
     @check.is_verified_guild()
     @check.is_allowed_channel()
+    @check.is_not_banned_user()
     async def ask(self, ctx: commands.Context, *, prompt: str):
         text = get_doc_text(self.bot.config["doc_url"])
         # if not is_relevant(text, prompt):
@@ -104,10 +105,12 @@ class GenAI(commands.Cog):
 
     @ask.error
     async def ask_error(self, ctx: commands.Context, error):
-        if isinstance(error, check.UnverifiedGuildError):
-            await ctx.send("This server is unverified!")
         if isinstance(error, check.UnAllowedChannelError):
             await ctx.send("That command is not allowed in this channel!")
+        elif isinstance(error, check.BannedUserError):
+            await ctx.send("Not allowed to use this command!")
+        elif isinstance(error, check.UnverifiedGuildError):
+            await ctx.send("This server is unverified!")
 
 
 async def setup(bot: tncbot.TNCBot):

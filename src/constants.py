@@ -19,7 +19,7 @@ PROMPT = """
     ~~strikethrough~~ for strikethrough
     ||spoilers|| for spoilers
     # for titles, ## for subtitles, ### for chapters, -# for subtext
-    - for bullet point, 1. for numbered (any number), can be nested and mixed
+    - for bullet point, 1. for numbered (any number), bullet and numbered can be nested and mixed
     `code line` for code line
     ```code block``` for code block
     > for quote, place on each line to be quoted

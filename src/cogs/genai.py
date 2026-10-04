@@ -1,4 +1,5 @@
 import asyncio
+import os
 import random
 import urllib.request
 
@@ -49,6 +50,7 @@ class GenAI(commands.Cog):
         self.usage_exceeded: bool = False
 
     async def _ask(self, ctx: commands.Context | discord.Interaction, text: str, prompt: str):
+        assert ctx.guild is not None
         lore_prompt = f"{PROMPT}\n{text}\nUser asks: {prompt}"
         self.usage_exceeded = False
         for attempt in range(1, MAX_RETRIES + 1):
@@ -56,7 +58,7 @@ class GenAI(commands.Cog):
                 delay = RETRY_DELAY * (attempt - 1) + random.uniform(-0.5, 0.5)
                 await asyncio.sleep(delay)
             try:
-                async with self.bot.ai.aio as aclient:
+                async with self.bot.authorized_guilds[ctx.guild.id].genai.aio as aclient:
                     selected_model = MODEL
                     if attempt > RETRY_DOWNGRADE or self.usage_exceeded:
                         if attempt == RETRY_DOWNGRADE + 1:
@@ -69,11 +71,14 @@ class GenAI(commands.Cog):
                             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True) # type: ignore
                         ),
                     )
-                    if len(response.text) > MAX_LENGTH:
-                        await self.bot.send_in_chunks(ctx, response.text)
+                    if response.text:
+                        if len(response.text) > MAX_LENGTH:
+                            await self.bot.send_in_chunks(ctx, response.text)
+                        else:
+                            await self.bot.send_message(ctx, response.text)
+                        return
                     else:
-                        await self.bot.send_message(ctx, response.text)
-                    return
+                        await self.bot.send_message(ctx, "Failed to regenerate response in some sort of a way that didn't cause a crash, congrats!")
             except errors.ServerError as e:
                 print(e.details.get("error").get("code"), e.details.get("error").get("message")) # type: ignore
                 await self.bot.send_message(ctx, "Service error, model likely under high demand, retrying!")
@@ -91,7 +96,10 @@ class GenAI(commands.Cog):
     @check.is_allowed_channel()
     @check.is_not_banned_user()
     async def ask(self, ctx: commands.Context, *, prompt: str):
-        text = get_doc_text(self.bot.config["doc_url"])
+        if ctx.guild is None: return
+        url = os.getenv("TNCBOT_DOC_URL")
+        if url is None: return
+        text = get_doc_text(url)
         if not is_relevant(text, prompt):
             print(f"{ctx.author.name} asked irrelevant question \"{prompt}\"")
             await ctx.send("Please do not ask irrelevant questions")

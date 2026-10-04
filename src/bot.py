@@ -4,26 +4,28 @@ import os
 import re
 import shlex
 
-import aiofiles
 import aiosqlite
 import discord
-from discord import NotFound, guild
+from discord import NotFound
 from discord.ext import commands
 from google import genai
 
 import help
-from constants import CONFIG_FILE, DB_FILE, HEADER, MAX_LENGTH
+from constants import DB_FILE, HEADER, MAX_LENGTH
 
+
+class AuthorizedGuild:
+    def __init__(self, guild: discord.Guild, api_key: genai.Client):
+        self.guild = guild
+        self.genai = api_key
 
 class TNCBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(command_prefix=">", intents=intents, help_command=help.StyledHelp())
-        self.config: dict = None # type: ignore
-        self.ai: genai.Client() = None # type: ignore
         self.db: aiosqlite.Connection() = None # type: ignore
-        self.authorized_guilds: list[guild.Guild] = None # type: ignore
+        self.authorized_guilds: dict[int, AuthorizedGuild] = {}
         self.cli_running: bool = False
 
     @staticmethod
@@ -86,11 +88,17 @@ class TNCBot(commands.Bot):
                     print("Channel not found")
             except Exception as e: # noqa: BLE001
                 print(f"Error when trying to send message in channel: {type(e)} {e}")
-        elif re.match(r"current-key", command):
+        elif re.match(r"key", command):
+            if len(command) < 4:
+                print("say command seemingly too small to use")
+                return
+
+            guild_id = command[4:]
+
             try:
-                print(self.ai._api_client.api_key)
+                print(self.authorized_guilds[int(guild_id)].genai._api_client.api_key)
             except Exception as e: # noqa: BLE001
-                print("Couldn't catch API key for reason:", e)
+                print("Couldn't catch API key for reason:", type(e))
         else:
             print(f"Unknown command {command}")
     
@@ -119,28 +127,6 @@ class TNCBot(commands.Bot):
                 await asyncio.sleep(1)
 
     async def setup_hook(self):
-        print("Loading config")
-        async with aiofiles.open(CONFIG_FILE, "r") as f:
-            config_content = await f.read()
-        if config_content:
-            self.config = json.loads(config_content)
-            print("Config loaded")
-        else:
-            print("Config failed to load")
-
-        print("Activating CLI")
-        self.loop.create_task(self.cli())
-        print("CLI activated")
-
-        print("Connecting to Google Gen AI")
-        api_key = os.getenv("GEMINI_API_KEY")
-
-        if api_key:
-            self.ai = genai.Client(api_key=api_key)
-            print("Google Gen AI connected")
-        else:
-            print("Google Gen AI failed to connect")
-
         print("Connecting to SQLite")
         self.db = await aiosqlite.connect(DB_FILE)
         await self.db.execute("PRAGMA journal_mode=WAL;")
@@ -163,26 +149,36 @@ class TNCBot(commands.Bot):
         print("SQLite connected")
 
         print("Loading authorized guilds")
-        if self.config["authorized_guilds"]:
-            authorized_guilds: list[guild.Guild] = []
+        authorized_guilds_str = os.getenv("TNCBOT_AUTHORIZED_GUILDS", r"{}")
+        authorized_guilds = json.loads(authorized_guilds_str)
+        if authorized_guilds:
             print("Authorized guilds loading:")
-            for i in self.config["authorized_guilds"]:
+            for id, api_key in authorized_guilds.items():
                 try:
-                    _guild = await self.fetch_guild(i)
-                    authorized_guilds.append(_guild)
-                    print(f"  {i} | {_guild}")
+                    print("  " + id)
+                    print("    Fetching Discord guild")
+                    _guild = await self.fetch_guild(int(id))
+                    print("    Fetching Google GenAI client")
+                    _genai = genai.Client(api_key=api_key)
+                    _auth_guild = AuthorizedGuild(_guild, _genai)
+                    self.authorized_guilds[int(id)] = _auth_guild
+                    print(f"    Loaded authorized guild {_guild.name} | {api_key}")
                 except NotFound:
-                    print(f"  guild {i} does not exist or bot is not in it")
-            self.authorized_guilds = authorized_guilds
+                    print("    Guild does not exist or bot is not in it")
             print("All authorized guilds loaded")
         else:
             print("No authorized guilds loaded")
 
+        # Keep this at the end smh
+        print("Activating CLI")
+        self.loop.create_task(self.cli())
+
     async def close(self):
-        if self.ai:
-            print("Closing Google Gen AI connection")
-            self.ai.close()
-            print("Google Gen AI connection closed")
+        if self.authorized_guilds:
+            for o in self.authorized_guilds.values():
+                print(f"Closing Google GenAI connection for {o.guild.name} ({o.guild.id})")
+                o.genai.close()
+                print("Closed")
         if self.db:
             print("Closing SQLite connection")
             await self.db.close()

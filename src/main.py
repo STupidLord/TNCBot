@@ -1,10 +1,11 @@
 import asyncio
 import os
 
+import discord
 from dotenv import load_dotenv
 
 import bot as tncbot
-import command_register
+import register
 
 
 async def main():
@@ -12,7 +13,7 @@ async def main():
 
     bot = tncbot.TNCBot()
 
-    await command_register.register_commands(bot)
+    await register.register_cogs(bot)
 
     @bot.event
     async def on_ready():
@@ -22,8 +23,17 @@ async def main():
             print(f"Synced {len(synced)} slash command(s) globally.")
         except Exception as e:  # noqa: BLE001
             print(f"Failed to sync commands: {e}")
+        print("Setting status")
+        await bot.change_presence(
+            status=discord.Status.online,
+            activity=discord.Activity(
+                type=discord.ActivityType.custom,
+                name="custom",
+                state=">help"
+            )
+        )
 
-    bot_token = os.getenv("DISCORD_BOT_TOKEN")
+    bot_token = os.getenv("TNCBOT_TOKEN")
     
     if not bot_token:
         return

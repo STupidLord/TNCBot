@@ -18,7 +18,7 @@ def is_verified_guild():
         if ctx.guild is None:
             return False
         
-        if ctx.guild in ctx.bot.authorized_guilds:
+        if ctx.guild.id in ctx.bot.authorized_guilds:
             return True
 
         raise UnverifiedGuildError

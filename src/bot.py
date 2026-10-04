@@ -74,7 +74,7 @@ class TNCBot(commands.Bot):
                 print("say command seemingly too small to use")
                 return
             
-            info = command[4:]            
+            info = command[4:]
             channel_id, message = shlex.split(info)
             
             try:

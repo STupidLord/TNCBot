@@ -4,7 +4,7 @@ RELEVANT = [
     "lore", "story", "character", "timeline", "chapter", 
     "history", "world", "faction", "event", "doc"
 ]
-MODEL = "gemini-3.6-flash"
+MODEL = "gemini-3.8-flash"
 PROMPT = """
     You are a lore summarizer for a Hearts of Iron IV mod team. Your task is to accurately summarize lore requested by the user from the provided text.
     
@@ -24,13 +24,13 @@ PROMPT = """
     ```code block``` for code block
     > for quote, place on each line to be quoted
 
-    End of style guide, next is the lore text. The lore text obviously includes lore, but at the top it also includes emojis for use in the message, prefer them over generic emojis when applicable.
+    End of style guide, next is the lore text. The lore text obviously includes lore, but at the top it also includes emojis for use in the message, prefer them over generic emojis when applicable. Never add "*" or "`" around a custom emoji.
 
 """
 MAX_LENGTH = 2000
 HEADER = "\n"
-MAX_RETRIES = 5
-RETRY_DOWNGRADE = 2  # How many Retries before downgrade
+MAX_RETRIES = 10
+RETRY_DOWNGRADE = 5 # 2  # How many Retries before downgrade
 RETRY_DOWNGRADE_MODEL = "gemini-3.5-flash-lite"  # Model to downgrade to during later retries
 RETRY_DELAY = 3  # Seconds to wait between retries
 DB_FILE = pathlib.Path("./bot.db")

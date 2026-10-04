@@ -92,16 +92,13 @@ class GenAI(commands.Cog):
     @check.is_not_banned_user()
     async def ask(self, ctx: commands.Context, *, prompt: str):
         text = get_doc_text(self.bot.config["doc_url"])
-        # if not is_relevant(text, prompt):
-        #     print(f"{ctx.author.name} asked irrelevant question \"{prompt}\"")
-        #     await ctx.send("Please do not ask irrelevant questions")
-        # else:
-        #     print(f"{ctx.author.name} asks \"{prompt}\"")
-        #     async with ctx.typing():
-        #         await self._ask(ctx, text, prompt)
-        print(f"{ctx.author.name} asks \"{prompt}\"")
-        async with ctx.typing():
-            await self._ask(ctx, text, prompt)
+        if not is_relevant(text, prompt):
+            print(f"{ctx.author.name} asked irrelevant question \"{prompt}\"")
+            await ctx.send("Please do not ask irrelevant questions")
+        else:
+            print(f"{ctx.author.name} asks \"{prompt}\"")
+            async with ctx.typing():
+                await self._ask(ctx, text, prompt)
 
     @ask.error
     async def ask_error(self, ctx: commands.Context, error):

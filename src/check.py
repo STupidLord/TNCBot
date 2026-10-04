@@ -1,6 +1,12 @@
 from discord.ext import commands
 
 
+def is_creator():
+    def predicate(ctx):
+        return ctx.author.id == 766045312095617104
+
+    return commands.check(predicate)
+
 class UnverifiedGuildError(commands.CommandError):
     """Guild is not verified"""
 

@@ -11,7 +11,7 @@ from discord.ext import commands
 from google import genai
 
 import help
-from constants import DB_FILE, HEADER, MAX_LENGTH
+from constants import HEADER, MAX_LENGTH, STORAGE
 
 
 class AuthorizedGuild:
@@ -128,7 +128,7 @@ class TNCBot(commands.Bot):
 
     async def setup_hook(self):
         print("Connecting to SQLite")
-        self.db = await aiosqlite.connect(DB_FILE)
+        self.db = await aiosqlite.connect(STORAGE / "bot.db")
         await self.db.execute("PRAGMA journal_mode=WAL;")
         
         await self.db.execute("""

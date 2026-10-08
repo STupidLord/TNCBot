@@ -6,10 +6,11 @@ from dotenv import load_dotenv
 
 import bot as tncbot
 import register
+from constants import STORAGE
 
 
 async def main():
-    load_dotenv(override=True)
+    load_dotenv(STORAGE / ".env", override=True)
 
     bot = tncbot.TNCBot()
 

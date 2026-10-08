@@ -1,9 +1,10 @@
 import asyncio
 import os
 import random
-import urllib.request
+import re
 
 import discord
+import requests
 from discord.ext import commands
 from google.genai import errors, types
 
@@ -23,17 +24,18 @@ from constants import (
 
 def get_doc_text(doc_url: str) -> str:
     """Fetches plain text or HTML directly from the published Google Doc link."""
-    if "/pub" in doc_url:
-        txt_url = doc_url.replace("/pub", "/pub?output=txt")
-    else:
-        txt_url = doc_url
+    if re.search(r"/export$", doc_url):
+        doc_url = doc_url.replace("/export", "/export?format=txt")
+    elif not re.search(r"/export\?format=txt$", doc_url):
+        return ""
 
-    req = urllib.request.Request(
-        txt_url, 
-        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    )
-    with urllib.request.urlopen(req) as response:
-        return response.read().decode('utf-8')
+    try:
+        response = requests.get(doc_url)
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
+        print("Something went wrong:", e)
+        return ""
 
 def is_relevant(text: str, input: str) -> bool:
     """Checks if prompt meets relevancy check"""
@@ -100,6 +102,8 @@ class GenAI(commands.Cog):
         url = os.getenv("TNCBOT_DOC_URL")
         if url is None: return
         text = get_doc_text(url)
+        if text == "":
+            return
         if not is_relevant(text, prompt):
             print(f"{ctx.author.name} asked irrelevant question \"{prompt}\"")
             await ctx.send("Please do not ask irrelevant questions")

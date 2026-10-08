@@ -33,4 +33,4 @@ MAX_RETRIES = 10
 RETRY_DOWNGRADE = 5 # 2  # How many Retries before downgrade
 RETRY_DOWNGRADE_MODEL = "gemini-3.5-flash-lite"  # Model to downgrade to during later retries
 RETRY_DELAY = 3  # Seconds to wait between retries
-DB_FILE = pathlib.Path("./bot.db")
+STORAGE = pathlib.Path(__file__).parent.parent / "storage"

@@ -53,7 +53,7 @@ class GenAI(commands.Cog):
 
     async def _ask(self, ctx: commands.Context | discord.Interaction, text: str, prompt: str):
         assert ctx.guild is not None
-        lore_prompt = f"{PROMPT}\n{text}\nUser asks: {prompt}"
+        lore_prompt = f"{PROMPT}\n{text}\nUser asks: {prompt}, put '###' at the start for titles, '##' for chapters, '#' for subtitles, *texthere* for dates"
         self.usage_exceeded = False
         for attempt in range(1, MAX_RETRIES + 1):
             if attempt > 1:

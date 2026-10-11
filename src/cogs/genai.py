@@ -104,9 +104,6 @@ class GenAI(commands.Cog):
         text = get_doc_text(url)
         if text == "":
             return
-        if not is_relevant(text, prompt):
-            print(f"{ctx.author.name} asked irrelevant question \"{prompt}\"")
-            await ctx.send("Please do not ask irrelevant questions")
         else:
             print(f"{ctx.author.name} asks \"{prompt}\"")
             async with ctx.typing():

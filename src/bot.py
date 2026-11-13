@@ -8,23 +8,24 @@ import aiosqlite
 import discord
 from discord import NotFound
 from discord.ext import commands
-from google import genai
+from openai import AsyncOpenAI
 
 import help
 from constants import HEADER, MAX_LENGTH, STORAGE
 
 
 class AuthorizedGuild:
-    def __init__(self, guild: discord.Guild, api_key: genai.Client):
+    def __init__(self, guild: discord.Guild, api_key: AsyncOpenAI):
         self.guild = guild
         self.genai = api_key
+
 
 class TNCBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(command_prefix=">", intents=intents, help_command=help.StyledHelp())
-        self.db: aiosqlite.Connection() = None # type: ignore
+        self.db: aiosqlite.Connection = None  # type: ignore
         self.authorized_guilds: dict[int, AuthorizedGuild] = {}
         self.cli_running: bool = False
 
@@ -61,10 +62,10 @@ class TNCBot(commands.Bot):
 
     @staticmethod
     async def send_message(ctx: commands.Context | discord.Interaction, message: str):
-            if isinstance(ctx, commands.Context):
-                await ctx.send(message)
-            elif isinstance(ctx, discord.Interaction):
-                await ctx.response.send_message(message)
+        if isinstance(ctx, commands.Context):
+            await ctx.send(message)
+        elif isinstance(ctx, discord.Interaction):
+            await ctx.response.send_message(message)
 
     async def handle_cli_command(self, command: str):
         if command == "stop":
@@ -75,50 +76,50 @@ class TNCBot(commands.Bot):
             if len(command) < 4:
                 print("say command seemingly too small to use")
                 return
-            
+
             info = command[4:]
             channel_id, message = shlex.split(info)
-            
+
             try:
                 channel = self.get_channel(int(channel_id))
                 if channel:
-                    await channel.send(message) # type: ignore
-                    print(f"Message sent in {channel.name}: {message}") # type: ignore
+                    await channel.send(message)  # type: ignore
+                    print(f"Message sent in {channel.name}: {message}")  # type: ignore
                 else:
                     print("Channel not found")
-            except Exception as e: # noqa: BLE001
+            except Exception as e:  # noqa: BLE001
                 print(f"Error when trying to send message in channel: {type(e)} {e}")
         elif re.match(r"key", command):
             if len(command) < 4:
-                print("say command seemingly too small to use")
+                print("key command seemingly too small to use")
                 return
 
             guild_id = command[4:]
 
             try:
-                print(self.authorized_guilds[int(guild_id)].genai._api_client.api_key)
-            except Exception as e: # noqa: BLE001
+                print(self.authorized_guilds[int(guild_id)].genai.api_key)
+            except Exception as e:  # noqa: BLE001
                 print("Couldn't catch API key for reason:", type(e))
         else:
             print(f"Unknown command {command}")
-    
+
     async def cli(self):
         await self.wait_until_ready()
         print("CLI input active")
-        
+
         self.cli_running = True
-        
+
         while self.cli_running:
             try:
                 command = await asyncio.to_thread(input)
 
                 if not self.cli_running:
                     break
-                
+
                 cleaned_command = command.strip()
                 if not cleaned_command:
                     continue
-                
+
                 await self.handle_cli_command(cleaned_command)
             except (asyncio.CancelledError, RuntimeError):
                 break
@@ -130,7 +131,7 @@ class TNCBot(commands.Bot):
         print("Connecting to SQLite")
         self.db = await aiosqlite.connect(STORAGE / "bot.db")
         await self.db.execute("PRAGMA journal_mode=WAL;")
-        
+
         await self.db.execute("""
             CREATE TABLE IF NOT EXISTS allowed_channels (
                 guild_id INTEGER,
@@ -158,11 +159,14 @@ class TNCBot(commands.Bot):
                     print("  " + id)
                     print("    Fetching Discord guild")
                     _guild = await self.fetch_guild(int(id))
-                    print("    Fetching Google GenAI client")
-                    _genai = genai.Client(api_key=api_key)
-                    _auth_guild = AuthorizedGuild(_guild, _genai)
+                    print("    Initializing OpenRouter client")
+                    _client = AsyncOpenAI(
+                        base_url="https://openrouter.ai/api/v1",
+                        api_key=api_key,
+                    )
+                    _auth_guild = AuthorizedGuild(_guild, _client)
                     self.authorized_guilds[int(id)] = _auth_guild
-                    print(f"    Loaded authorized guild {_guild.name} | {api_key}")
+                    print(f"    Loaded authorized guild {_guild.name} | {api_key[:12]}...")
                 except NotFound:
                     print("    Guild does not exist or bot is not in it")
             print("All authorized guilds loaded")
@@ -176,8 +180,8 @@ class TNCBot(commands.Bot):
     async def close(self):
         if self.authorized_guilds:
             for o in self.authorized_guilds.values():
-                print(f"Closing Google GenAI connection for {o.guild.name} ({o.guild.id})")
-                o.genai.close()
+                print(f"Closing OpenRouter connection for {o.guild.name} ({o.guild.id})")
+                await o.genai.close()
                 print("Closed")
         if self.db:
             print("Closing SQLite connection")
